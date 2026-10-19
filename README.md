@@ -11,11 +11,14 @@ Necesitas macOS Apple Silicon, Xcode completo y Homebrew. El entorno probado usa
 ```bash
 git clone --branch V0.1 https://github.com/pumitahou/magevk_radiance_port.git
 cd magevk_radiance_port
+# Coloca el ZIP de Vulkan SDK para macOS en downloads/ antes del setup.
 ./setup.sh
 ./compile.sh --no-install
 ```
 
-`setup.sh` inicializa las revisiones exactas de los submódulos con historial superficial y dos descargas simultáneas, instala las herramientas Homebrew ausentes y reutiliza un Vulkan SDK indicado con `VULKAN_SDK`. Si no lo encuentra, descarga el SDK LunarG 1.4.363.0, comprueba su SHA-256 y ejecuta su instalador local con aceptación de sus licencias. Xcode y Homebrew se instalan por separado. `./setup.sh --check` solo comprueba el entorno. Si una descarga se interrumpe, vuelve a ejecutar `./setup.sh`: conserva los submódulos que ya se descargaron.
+Descarga manualmente el **ZIP de Vulkan SDK para macOS** desde [LunarG](https://vulkan.lunarg.com/sdk/home/) y colócalo **sin descomprimir** en `downloads/`, conservando su nombre `vulkansdk-macos-*.zip`. Deja un solo ZIP en esa carpeta. El SDK utilizado durante el experimento fue 1.4.363.0; el instalador acepta el archivo que elijas, sin exigir esa versión ni comprobar un SHA.
+
+`setup.sh` inicializa las revisiones exactas de los submódulos con historial superficial y dos descargas simultáneas, instala las herramientas Homebrew ausentes y reutiliza un Vulkan SDK indicado con `VULKAN_SDK`. Si no lo encuentra instalado, extrae el ZIP de `downloads/` y ejecuta su instalador local con aceptación de sus licencias. Si falta el ZIP, muestra dónde colocarlo y termina. Xcode y Homebrew se instalan por separado. `./setup.sh --check` solo comprueba el entorno. Si se interrumpe la descarga de un submódulo, vuelve a ejecutar `./setup.sh`: conserva los que ya se descargaron.
 
 La compilación produce:
 
