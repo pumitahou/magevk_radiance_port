@@ -1,0 +1,22 @@
+{
+  "platform": "macOS Apple Silicon (arm64)",
+  "tested": {
+    "macos": "26.6.2",
+    "xcode": "26.3",
+    "java": "21.0.12.1",
+    "cmake": "4.4.4",
+    "ninja": "1.13.2",
+    "shaderc": "2026.4",
+    "glslang": "16.6.0",
+    "vulkan_sdk": "1.4.363.0",
+    "gradle_wrapper": "9.4.0"
+  },
+  "homebrew": ["cmake", "ninja", "openjdk@21", "shaderc", "glslang", "vulkan-loader", "vulkan-headers", "spirv-tools", "python@3.13"],
+  "minecraft": {"version": "1.21.1", "loader": "Fabric", "fabric_api": "0.102.0+1.21.1"},
+  "experiment": "E15-fsr1",
+  "fetched_sources": {
+    "ShaderMake": "3f01623a76b092ac127d2debd79a672f55d77665",
+    "MathLib": "1eec713c647b8a901cdfdeb83a9d77d9c9ca5df9",
+    "sse2neon": "2272251cc3ad9cba8b8c47c4065811cfb396b802"
+  }
+}

@@ -1,0 +1,52 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+#extension GL_GOOGLE_include_directive : require
+#include "util/ray.glsl"
+layout(set=0,binding=0) uniform accelerationStructureEXT scene;
+layout(set=0,binding=1,std430) buffer Results { uint values[]; } result;
+layout(push_constant) uniform Count { uint rays; } count;
+layout(location=0) rayPayloadEXT MainRay payload;
+
+MainRay freshRay(uint seed) {
+    MainRay p;
+    p.origin=vec3(0,0,-1); p.hitT=0;
+    p.direction=vec3(0,0,1); p.seed=seed;
+    p.radiance=vec3(0); p.coneWidth=0;
+    p.throughput=vec3(1); p.coneSpread=0;
+    p.prevScenePos=vec3(0); p.hasPrevScenePos=0;
+    p.normal=vec3(0); p.stateBits=0;
+    p.directLightRadiance=vec3(0); p.pad0=0;
+#if MCVR_RAY_MATERIAL_PAYLOAD
+    p.materialAlbedo=vec4(0); p.materialF0Roughness=vec4(0); p.materialProperties=vec4(0);
+#endif
+    return p;
+}
+
+bool matches(MaterialInfo m, uint seed) {
+    float alpha = (seed & 1u)==0u ? 0.25 : 0.75;
+#if MCVR_TEST_GLASS_SPECULAR
+    float roughness=0.01;
+#else
+    float roughness=1.0;
+#endif
+    return abs(m.albedoValue.a-alpha)<0.001 && abs(m.transmission-(1-alpha))<0.001 &&
+           abs(m.roughness-roughness)<0.001 && abs(m.albedoValue.r-float(gl_LaunchIDEXT.x%16u)/16.0)<0.001 &&
+           abs(m.albedoValue.g-float(gl_LaunchIDEXT.y%16u)/16.0)<0.001;
+}
+
+void main() {
+    uint total=0;
+    for(uint i=0;i<count.rays;i++) {
+        uint seed=(gl_LaunchIDEXT.x+gl_LaunchIDEXT.y+i)&1u;
+        payload=freshRay(seed);
+        traceRayEXT(scene,gl_RayFlagsNoneEXT,255,0,0,0,payload.origin,0.001,payload.direction,10,0);
+        MainRay first=payload;
+        bool firstCorrect=matches(rayLoadMaterial(first),seed);
+        payload=freshRay(seed^1u);
+        traceRayEXT(scene,gl_RayFlagsNoneEXT,255,0,0,0,payload.origin,0.001,payload.direction,10,0);
+        bool secondCorrect=matches(rayLoadMaterial(payload),seed^1u);
+        bool isolated=matches(rayLoadMaterial(first),seed);
+        total+=1009u+(firstCorrect?0u:1u)+(isolated?0u:2u)+(secondCorrect?0u:4u);
+    }
+    result.values[gl_LaunchIDEXT.y*gl_LaunchSizeEXT.x+gl_LaunchIDEXT.x]=total;
+}

@@ -1,0 +1,24 @@
+[submodule "Radiance"]
+	path = Radiance
+	url = https://github.com/pumitahou/Radiance.git
+	branch = V0.1
+[submodule "MCVR"]
+	path = MCVR
+	url = https://github.com/pumitahou/MCVR.git
+	branch = V0.1
+[submodule "magevk"]
+	path = magevk
+	url = https://github.com/pumitahou/magevk.git
+	branch = V0.1
+[submodule "magevk-spirv-cross"]
+	path = magevk-spirv-cross
+	url = https://github.com/dttdrv/magevk-spirv-cross.git
+[submodule "third_party/ShaderMake"]
+	path = third_party/ShaderMake
+	url = https://github.com/NVIDIA-RTX/ShaderMake.git
+[submodule "third_party/MathLib"]
+	path = third_party/MathLib
+	url = https://github.com/NVIDIA-RTX/MathLib.git
+[submodule "third_party/sse2neon"]
+	path = third_party/sse2neon
+	url = https://github.com/DLTcollab/sse2neon.git

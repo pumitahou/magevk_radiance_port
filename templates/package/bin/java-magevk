@@ -1,0 +1,92 @@
+#!/bin/bash
+set -euo pipefail
+RADIANCE_PACKAGE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [[ -z "${RADIANCE_JAVA_BIN:-}" ]]; then
+  RADIANCE_JAVA_HOME="${JAVA_HOME:-}"
+  if [[ -z "$RADIANCE_JAVA_HOME" && -x /opt/homebrew/bin/brew ]]; then
+    RADIANCE_JAVA_HOME="$(/opt/homebrew/bin/brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home"
+  fi
+  if [[ -z "$RADIANCE_JAVA_HOME" ]]; then RADIANCE_JAVA_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null || true)"; fi
+  RADIANCE_JAVA_BIN="$RADIANCE_JAVA_HOME/bin/java"
+fi
+if [[ ! -x "$RADIANCE_JAVA_BIN" ]]; then
+  echo 'No se encontró Java 21. Instálalo con brew install openjdk@21.' >&2
+  exit 1
+fi
+export VK_DRIVER_FILES="$RADIANCE_PACKAGE_DIR/runtime/magevk_icd.json"
+export VK_ICD_FILENAMES="$VK_DRIVER_FILES"
+export MVK_CONFIG_ENABLE_EXPERIMENTAL_RAY_TRACING=1
+export DYLD_LIBRARY_PATH="$RADIANCE_PACKAGE_DIR/runtime${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+export DYLD_FALLBACK_LIBRARY_PATH="$RADIANCE_PACKAGE_DIR/runtime${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+if [[ $# -eq 1 && ( "$1" == '-version' || "$1" == '--version' || "$1" == '-fullversion' ) ]]; then
+  exec "$RADIANCE_JAVA_BIN" "$@"
+fi
+RADIANCE_EXPERIMENT=E09-static-color
+if [[ -f "$RADIANCE_PACKAGE_DIR/experiment-id.txt" ]]; then
+  IFS= read -r RADIANCE_EXPERIMENT < "$RADIANCE_PACKAGE_DIR/experiment-id.txt" || true
+fi
+if [[ ! "$RADIANCE_EXPERIMENT" =~ ^E[0-9]+-[a-zA-Z0-9-]+$ ]]; then
+  echo 'Identificador de experimento no válido.' >&2
+  exit 2
+fi
+RADIANCE_EXPERIMENT_TAG="${RADIANCE_EXPERIMENT%%-*}"
+RADIANCE_PROBE=normal
+if [[ -f "$RADIANCE_PACKAGE_DIR/experiment-mode.txt" ]]; then
+  IFS= read -r RADIANCE_PROBE < "$RADIANCE_PACKAGE_DIR/experiment-mode.txt" || true
+fi
+case "$RADIANCE_PROBE" in
+  normal|source-magenta|flat-ui) ;;
+  *) echo "Modo $RADIANCE_EXPERIMENT_TAG desconocido: $RADIANCE_PROBE" >&2; exit 2 ;;
+esac
+export MCVR_UI_PRESENT_PROBE="$RADIANCE_PROBE"
+RADIANCE_VALIDATION=off
+if [[ -f "$RADIANCE_PACKAGE_DIR/validation-mode.txt" ]]; then
+  IFS= read -r RADIANCE_VALIDATION < "$RADIANCE_PACKAGE_DIR/validation-mode.txt" || true
+fi
+if [[ "$RADIANCE_VALIDATION" == on ]]; then
+  RADIANCE_SDK="${VULKAN_SDK:-}"
+  if [[ -z "$RADIANCE_SDK" ]]; then
+    for candidate in "$RADIANCE_PACKAGE_DIR/../../.tools/vulkan-sdk/macOS" "$RADIANCE_PACKAGE_DIR/../../vulkan-sdk/macOS"; do
+      if [[ -d "$candidate/share/vulkan/explicit_layer.d" ]]; then RADIANCE_SDK="$candidate"; break; fi
+    done
+  fi
+  [[ -n "$RADIANCE_SDK" ]] || { echo 'Para validar, define VULKAN_SDK o ejecuta setup.sh.'; exit 1; }
+  RADIANCE_LAYER_DIR="$RADIANCE_SDK/share/vulkan/explicit_layer.d"
+  export VK_LAYER_PATH="$RADIANCE_LAYER_DIR"
+  export VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation
+  export VK_LAYER_SETTINGS_PATH="$RADIANCE_PACKAGE_DIR/runtime/validation"
+  export VK_LAYER_DUPLICATE_MESSAGE_LIMIT=3
+  export VK_LOADER_DEBUG=layer
+else
+  unset VK_INSTANCE_LAYERS VK_LAYER_PATH VK_LAYER_SETTINGS_PATH VK_LAYER_DUPLICATE_MESSAGE_LIMIT VK_LOADER_DEBUG
+fi
+RADIANCE_PERF_CAPTURE=0
+if [[ -f "$RADIANCE_PACKAGE_DIR/performance-mode.txt" ]]; then
+  IFS= read -r RADIANCE_PERF_CAPTURE < "$RADIANCE_PACKAGE_DIR/performance-mode.txt" || true
+fi
+case "$RADIANCE_PERF_CAPTURE" in
+  0|1) ;;
+  *) echo 'Modo de medición no válido.' >&2; exit 2 ;;
+esac
+export MCVR_PERFORMANCE_CAPTURE="$RADIANCE_PERF_CAPTURE"
+RADIANCE_RT_GROUP_SIZE=32
+if [[ -f "$RADIANCE_PACKAGE_DIR/rt-threadgroup-size.txt" ]]; then
+  IFS= read -r RADIANCE_RT_GROUP_SIZE < "$RADIANCE_PACKAGE_DIR/rt-threadgroup-size.txt" || true
+fi
+case "$RADIANCE_RT_GROUP_SIZE" in
+  1|32) ;;
+  *) echo 'Grupo de ray tracing no válido: usa 1 o 32.' >&2; exit 2 ;;
+esac
+export RADIANCE_MAGEVK_RT_GROUP_SIZE="$RADIANCE_RT_GROUP_SIZE"
+export RADIANCE_MAGEVK_RETAIN_RESOURCES=1
+mkdir -p "$RADIANCE_PACKAGE_DIR/logs/runs"
+RADIANCE_RUN_LOG="$RADIANCE_PACKAGE_DIR/logs/runs/${RADIANCE_EXPERIMENT_TAG}-${RADIANCE_PROBE}-$(date +%Y%m%d-%H%M%S)-$$.log"
+printf '%s\n' "$RADIANCE_RUN_LOG" > "$RADIANCE_PACKAGE_DIR/logs/ultimo-registro.txt"
+# Preserve earlier output, then keep the familiar /tmp path pointing to this run.
+if [[ -f /tmp/java-magevk-out.log && ! -L /tmp/java-magevk-out.log ]]; then
+  cp /tmp/java-magevk-out.log "$RADIANCE_PACKAGE_DIR/logs/runs/anterior-a-${RADIANCE_EXPERIMENT_TAG}-$$.log"
+fi
+ln -sfn "$RADIANCE_RUN_LOG" /tmp/java-magevk-out.log
+exec >> "$RADIANCE_RUN_LOG" 2>&1
+printf '[RADIANCE-%s] inicio=%s modo=%s validacion=%s medicion=%s rt_grupo=%s retener_recursos=1 java=%s\n' "$RADIANCE_EXPERIMENT_TAG" "$(date -Iseconds)" "$RADIANCE_PROBE" "$RADIANCE_VALIDATION" "$RADIANCE_PERF_CAPTURE" "$RADIANCE_RT_GROUP_SIZE" "$RADIANCE_JAVA_BIN"
+exec "$RADIANCE_JAVA_BIN" "$@"
