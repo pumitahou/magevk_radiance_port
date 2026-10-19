@@ -6,6 +6,12 @@ export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Develope
 if ! command -v brew >/dev/null 2>&1 && [[ -x /opt/homebrew/bin/brew ]]; then
   export PATH="/opt/homebrew/bin:$PATH"
 fi
+if command -v brew >/dev/null 2>&1; then
+  RADIANCE_PYTHON_PREFIX="$(brew --prefix python@3.13 2>/dev/null || true)"
+  if [[ -x "$RADIANCE_PYTHON_PREFIX/libexec/bin/python3" ]]; then
+    export PATH="$RADIANCE_PYTHON_PREFIX/libexec/bin:$PATH"
+  fi
+fi
 if [[ -z "${JAVA_HOME:-}" ]]; then
   if command -v brew >/dev/null 2>&1 && [[ -d "$(brew --prefix openjdk@21 2>/dev/null)/libexec/openjdk.jdk/Contents/Home" ]]; then
     export JAVA_HOME="$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home"

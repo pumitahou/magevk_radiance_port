@@ -9,7 +9,7 @@ Este repositorio reúne el port de Radiance 0.1.6-alpha para Minecraft Java 1.21
 Necesitas macOS Apple Silicon, Xcode completo y Homebrew. El entorno probado usa macOS 26.6.2 y Xcode 26.3; la revisión de MageVK está elegida para ese entorno. No se necesita actualizar a la rama principal de MageVK.
 
 ```bash
-git clone --branch V0.1 --recurse-submodules https://github.com/pumitahou/magevk_radiance_port.git
+git clone --branch V0.1 --recurse-submodules --shallow-submodules https://github.com/pumitahou/magevk_radiance_port.git
 cd magevk_radiance_port
 ./setup.sh
 ./compile.sh --no-install
@@ -81,6 +81,6 @@ python3 scripts/probar-fsr1.py --metal-validation
 python3 scripts/benchmark-rt.py --validation --width 127 --height 65 --repeats 3 --rounds 1
 ```
 
-Las pruebas externas usan el runtime del paquete y no arrancan Minecraft. Sus resultados se guardan fuera de Git. Compilar y superar estas pruebas no certifica la imagen completa ni la estabilidad del juego.
+Las pruebas externas usan el runtime del paquete y no arrancan Minecraft. Sus resultados se guardan fuera de Git. Compilar y superar estas pruebas no certifica la imagen completa ni la estabilidad del juego. `--shallow-submodules` reduce la descarga del historial; los SDK de terceros todavía pueden ocupar bastante espacio.
 
 Para contribuir, consulta [CONTRIBUTING.md](CONTRIBUTING.md), [el avance desde la pantalla roja](docs/avance-pantalla-roja.md) y [las licencias y procedencias](THIRD_PARTY.md). Conservamos los autores, historiales y licencias de los proyectos originales; los forks contienen nuestras modificaciones experimentales.
