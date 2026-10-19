@@ -25,7 +25,7 @@ java -version 2>&1 | head -1 | grep -E 'version "21[.\"]' >/dev/null || { echo '
 python3 -c 'import sys; assert sys.version_info >= (3, 11), "Se requiere Python 3.11 o posterior"'
 if [[ "$RADIANCE_CHECK_ONLY" == 0 ]]; then
   git -C "$RADIANCE_ROOT" submodule sync --recursive
-  git -C "$RADIANCE_ROOT" submodule update --init --recursive --jobs 4
+  git -c http.version=HTTP/1.1 -C "$RADIANCE_ROOT" submodule update --init --recursive --depth 1 --jobs "${RADIANCE_GIT_JOBS:-2}"
   python3 "$RADIANCE_ROOT/scripts/preparar-sdk.py"
   source "$RADIANCE_ROOT/scripts/entorno.sh"
 fi
