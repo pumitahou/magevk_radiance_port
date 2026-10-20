@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproduce the E12 ray-dispatch comparison outside Minecraft."""
+"""Measure ray-dispatch timing on a single triangle or a layered synthetic BLAS."""
 import argparse
 import json
 import os
@@ -16,6 +16,8 @@ parser.add_argument('--payloads', default='uint,wide,any')
 parser.add_argument('--width', type=int, default=640)
 parser.add_argument('--height', type=int, default=360)
 parser.add_argument('--rays', type=int, default=4)
+parser.add_argument('--layers', type=int, default=1,
+                    help='number of coplanar-depth triangles in the BLAS (1-64)')
 parser.add_argument('--repeats', type=int, default=7)
 parser.add_argument('--rounds', type=int, default=2)
 parser.add_argument('--validation', action='store_true')
@@ -30,7 +32,7 @@ if not payloads or any(payload not in ('uint', 'wide', 'any') for payload in pay
 if not 1 <= args.rounds <= 4:
     parser.error('Usa entre 1 y 4 rondas')
 if not (0 < args.width and 0 < args.height and args.width * args.height <= 1048576
-        and 1 <= args.rays <= 16 and 1 <= args.repeats <= 20):
+        and 1 <= args.rays <= 16 and 1 <= args.layers <= 64 and 1 <= args.repeats <= 20):
     parser.error('Dimensiones, trazados o repeticiones fuera de los límites del benchmark')
 
 package = root / 'dist/Radiance-M4-experimental'
@@ -62,7 +64,7 @@ for payload in payloads:
             env['RADIANCE_MAGEVK_RT_GROUP_SIZE'] = str(group)
             name = f'{len(rows):02d}-{payload}-g{group}.log'
             command = [str(root/'probes/rt_benchmark'), str(args.width), str(args.height),
-                str(args.rays), str(args.repeats), payload] + (['indirect'] if args.indirect else [])
+                str(args.rays), str(args.repeats), payload] + (['indirect'] if args.indirect else []) + [str(args.layers)]
             with (state/name).open('w') as output:
                 completed = subprocess.run(command,cwd=root,env=env,stdout=output,
                     stderr=subprocess.STDOUT,timeout=60)
@@ -74,7 +76,7 @@ for payload in payloads:
             row = json.loads(result[1])
             if not row['all_pixels_correct']:
                 raise SystemExit('Resultados de GPU incorrectos: '+str(state/name))
-            row.update(group=group,round=round_index,payload=payload,log=name,library_marker_verified=True)
+            row.update(group=group,round=round_index,payload=payload,layers=args.layers,log=name,library_marker_verified=True)
             rows.append(row)
             (state/'resultados.json').write_text(json.dumps(rows,indent=2)+'\n')
             print(f'{payload}: grupo={group}, mediana GPU={row["gpu_ms_median"]:.3f} ms, todos los píxeles correctos',flush=True)

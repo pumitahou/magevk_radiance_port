@@ -6,6 +6,8 @@ Este repositorio reúne el port de Radiance 0.1.6-alpha para Minecraft Java 1.21
 
 La compilación predeterminada prepara **E16-transparencia-nrd**. Consulta [el cambio y las pruebas de E16](docs/E16-transparencia-nrd.md): el compositor conserva el fondo refractado junto al reflejo, y los pipelines guardados reciben la conexión necesaria sin sustituir conexiones de refracción existentes.
 
+Los cambios posteriores incluyen [E17, retención de recursos Metal](docs/E17-vida-recursos-metal.md), y [E18, optimización de sombras y medición GPU](docs/E18-ray-tracing.md). **E18 sigue siendo inestable:** el usuario reportó otro cierre y el informe nativo muestra un fallo durante una notificación de Metal. SHARC también tiene un fallo pendiente. La mejora del 19% corresponde a una prueba aislada de sombras, no a los FPS de Minecraft. Para identificar explícitamente el paquete de esta prueba: `./compile.sh --no-install E18-ray-tracing`.
+
 ## Empezar
 
 Necesitas macOS Apple Silicon, Xcode completo y Homebrew. El entorno probado usa macOS 26.6.2 y Xcode 26.3; la revisión de MageVK está elegida para ese entorno. No se necesita actualizar a la rama principal de MageVK.

@@ -37,4 +37,6 @@ E15 integra FSR 1 espacial EASU + RCAS y un modo experimental 4× por eje. El us
 
 E16 conecta la salida de refracción de Vanilla PT al compositor NRD y marca los materiales transmisivos en su guía. La prueba GPU del compositor demuestra que el fondo refractado se conserva sin duplicar la salida clear. El 20 de octubre de 2026 el usuario confirmó que el arreglo funcionó en Minecraft. Consulta [el experimento E16](E16-transparencia-nrd.md) para su alcance y validación; no se midió una mejora de FPS.
 
+E17 retiene recursos Metal desde su registro diferido hasta el reset del encoder y supera un caso de estrés que abortaba con E16. E18 optimiza los rayos de sombra y agrega mediciones por etapa sin reducir calidad. El usuario reportó otro cierre con E18; su informe apunta a una notificación de Metal y sigue pendiente de investigación. La mejora del 19% observada pertenece únicamente al probe de sombras. Véanse [E17](E17-vida-recursos-metal.md) y [E18](E18-ray-tracing.md).
+
 La rama `V0.1` publica esta base experimental y su organización reproducible. Los autores y licencias originales se conservan; los forks contienen las modificaciones del port.

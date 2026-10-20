@@ -38,8 +38,9 @@ mod_name = 'Radiance-0.1.6-alpha-fabric-1.21.1-macos-arm64-experimental.jar'
 with zipfile.ZipFile(package / 'mods' / mod_name) as jar:
     native = jar.read('libcore.dylib')
     marker = ('[RADIANCE-' + experiment.split('-')[0] + ']').encode()
-    if marker not in native:
-        raise SystemExit('El JAR no contiene el motor del experimento; no se ha instalado')
+    runtime = package / 'runtime/libMoltenVK.1.dylib'
+    if marker not in native and (not runtime.is_file() or marker not in runtime.read_bytes()):
+        raise SystemExit('Ni el motor ni MageVK corresponden al experimento; no se ha instalado')
     if 'shaders/world/ray_tracing/vanilla-pt.zip' not in jar.namelist():
         raise SystemExit('Falta Vanilla PT; no se ha instalado')
 other_radiance = [p.name for p in mods.glob('*.jar') if 'radiance' in p.name.lower() and p.name != mod_name]

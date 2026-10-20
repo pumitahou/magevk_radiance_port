@@ -4,5 +4,5 @@ struct Payload { uvec4 data[16]; };
 layout(location=0) rayPayloadInEXT Payload payload;
 hitAttributeEXT vec2 barycentrics;
 void main() {
-    if ((gl_LaunchIDEXT.x & 7u) == 6u) ignoreIntersectionEXT;
+    if ((gl_LaunchIDEXT.x & 7u) == 6u && gl_PrimitiveID < 8) ignoreIntersectionEXT;
 }

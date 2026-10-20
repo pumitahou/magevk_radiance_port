@@ -40,16 +40,16 @@ void submit(VkCommandBuffer cmd) {
  CHECK(vkEndCommandBuffer(cmd)); VkSubmitInfo si{VK_STRUCTURE_TYPE_SUBMIT_INFO}; si.commandBufferCount=1; si.pCommandBuffers=&cmd;
  CHECK(vkQueueSubmit(queue,1,&si,VK_NULL_HANDLE)); CHECK(vkQueueWaitIdle(queue)); vkFreeCommandBuffers(dev,pool,1,&cmd);
 }
-VkAccelerationStructureKHR acceleration(VkAccelerationStructureTypeKHR type, VkAccelerationStructureGeometryKHR geom) {
+VkAccelerationStructureKHR acceleration(VkAccelerationStructureTypeKHR type, VkAccelerationStructureGeometryKHR geom, uint32_t primitiveCount=1) {
  VkAccelerationStructureBuildGeometryInfoKHR info{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR}; info.type=type; info.flags=VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR; info.mode=VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR; info.geometryCount=1; info.pGeometries=&geom;
- uint32_t count=1; VkAccelerationStructureBuildSizesInfoKHR sizes{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR}; asSizes(dev,VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,&info,&count,&sizes);
+ uint32_t count=primitiveCount; VkAccelerationStructureBuildSizesInfoKHR sizes{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR}; asSizes(dev,VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,&info,&count,&sizes);
  auto storage=buffer(sizes.accelerationStructureSize,VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR);
  VkAccelerationStructureCreateInfoKHR ci{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR}; ci.type=type; ci.buffer=storage.buffer; ci.size=sizes.accelerationStructureSize;
  VkAccelerationStructureKHR as; CHECK(createAS(dev,&ci,nullptr,&as)); info.dstAccelerationStructure=as;
  VkPhysicalDeviceAccelerationStructurePropertiesKHR ap{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR}; VkPhysicalDeviceProperties2 p{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2}; p.pNext=&ap; vkGetPhysicalDeviceProperties2(gpu,&p);
  auto scratch=buffer(sizes.buildScratchSize+ap.minAccelerationStructureScratchOffsetAlignment,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
  auto align=VkDeviceAddress(ap.minAccelerationStructureScratchOffsetAlignment); info.scratchData.deviceAddress=(scratch.address+align-1)&~(align-1);
- VkAccelerationStructureBuildRangeInfoKHR range{}; range.primitiveCount=1; auto rp=&range;
+ VkAccelerationStructureBuildRangeInfoKHR range{}; range.primitiveCount=primitiveCount; auto rp=&range;
  auto cmd=begin(); buildAS(cmd,1,&info,&rp);
  VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER}; barrier.srcAccessMask=VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR; barrier.dstAccessMask=VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
  vkCmdPipelineBarrier(cmd,VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,0,1,&barrier,0,nullptr,0,nullptr); submit(cmd);
@@ -64,7 +64,8 @@ int main(int argc, char** argv) { try {
  uint32_t rayCount=argc>3?std::stoul(argv[3]):4, repeats=argc>4?std::stoul(argv[4]):7;
  bool anyHit=argc>5 && std::string(argv[5])=="any";
  bool wide=argc>5 && (std::string(argv[5])=="wide" || anyHit), indirect=argc>6 && std::string(argv[6])=="indirect";
- if(!width||!height||uint64_t(width)*height>1048576||!rayCount||rayCount>16||!repeats||repeats>20) throw std::runtime_error("Benchmark limits exceeded");
+ uint32_t layerCount=argc>(indirect?7:6)?std::stoul(argv[indirect?7:6]):1;
+ if(!width||!height||uint64_t(width)*height>1048576||!rayCount||rayCount>16||!repeats||repeats>20||!layerCount||layerCount>64) throw std::runtime_error("Benchmark limits exceeded");
  auto bytes=VkDeviceSize(width)*height*sizeof(uint32_t);
  VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO}; app.pApplicationName="Radiance M4 RT triangle probe"; app.apiVersion=VK_API_VERSION_1_2;
  const char* ie[]={"VK_KHR_portability_enumeration"}; VkInstanceCreateInfo ici{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO}; ici.pApplicationInfo=&app; ici.flags=VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR; ici.enabledExtensionCount=1; ici.ppEnabledExtensionNames=ie; VkInstance instance; CHECK(vkCreateInstance(&ici,nullptr,&instance));
@@ -83,10 +84,16 @@ int main(int argc, char** argv) { try {
 #define LOAD(v, name) v=(PFN_##name)vkGetDeviceProcAddr(dev,#name); if(!v) throw std::runtime_error(#name)
  LOAD(createAS,vkCreateAccelerationStructureKHR); LOAD(asSizes,vkGetAccelerationStructureBuildSizesKHR); LOAD(buildAS,vkCmdBuildAccelerationStructuresKHR); LOAD(asAddress,vkGetAccelerationStructureDeviceAddressKHR); LOAD(createRT,vkCreateRayTracingPipelinesKHR); LOAD(groupHandles,vkGetRayTracingShaderGroupHandlesKHR); LOAD(traceRays,vkCmdTraceRaysKHR);
  VkCommandPoolCreateInfo pci{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO}; pci.queueFamilyIndex=qi; CHECK(vkCreateCommandPool(dev,&pci,nullptr,&pool));
- const float vertices[]={-1,-1,0,1,-1,0,0,1,0}; auto vb=buffer(sizeof(vertices),VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,vertices);
+ std::vector<float> vertices(size_t(layerCount)*9);
+ for(uint32_t layer=0;layer<layerCount;layer++) {
+  float z=float(layer)*0.05f;
+  const float tri[]={-1,-1,z,1,-1,z,0,1,z};
+  memcpy(vertices.data()+size_t(layer)*9,tri,sizeof(tri));
+ }
+ auto vb=buffer(vertices.size()*sizeof(float),VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,vertices.data());
  VkAccelerationStructureGeometryKHR geom{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR}; geom.geometryType=VK_GEOMETRY_TYPE_TRIANGLES_KHR; geom.flags=anyHit?0:VK_GEOMETRY_OPAQUE_BIT_KHR;
- auto& tri=geom.geometry.triangles; tri.sType=VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR; tri.vertexFormat=VK_FORMAT_R32G32B32_SFLOAT; tri.vertexData.deviceAddress=vb.address; tri.vertexStride=12; tri.maxVertex=2; tri.indexType=VK_INDEX_TYPE_NONE_KHR;
- auto blas=acceleration(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,geom); puts("BLAS built");
+ auto& tri=geom.geometry.triangles; tri.sType=VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR; tri.vertexFormat=VK_FORMAT_R32G32B32_SFLOAT; tri.vertexData.deviceAddress=vb.address; tri.vertexStride=12; tri.maxVertex=layerCount*3-1; tri.indexType=VK_INDEX_TYPE_NONE_KHR;
+ auto blas=acceleration(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,geom,layerCount); puts("BLAS built");
  VkAccelerationStructureDeviceAddressInfoKHR adi{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR}; adi.accelerationStructure=blas;
  VkAccelerationStructureInstanceKHR ins{}; ins.transform.matrix[0][0]=ins.transform.matrix[1][1]=ins.transform.matrix[2][2]=1; ins.mask=255; ins.flags=VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR; ins.accelerationStructureReference=asAddress(dev,&adi);
  auto ib=buffer(sizeof(ins),VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,&ins); VkAccelerationStructureGeometryKHR ig{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR}; ig.geometryType=VK_GEOMETRY_TYPE_INSTANCES_KHR; ig.geometry.instances.sType=VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR; ig.geometry.instances.data.deviceAddress=ib.address;
@@ -128,14 +135,16 @@ int main(int argc, char** argv) { try {
   uint64_t ticks[2];CHECK(vkGetQueryPoolResults(dev,timestamps,0,2,sizeof(ticks),ticks,sizeof(uint64_t),VK_QUERY_RESULT_64_BIT));
   auto values=(uint32_t*)output.mapped;
   for(uint32_t y=0;y<height;y++)for(uint32_t x=0;x<width;x++) {
-   uint32_t expected=((x&1)||(anyHit && (x&7u)==6u))?456u:123u;
-   if(wide) expected=64u*(expected+(x&7u))+2016u;
+   bool miss=(x&1u)||(anyHit && (x&7u)==6u && layerCount<=8u);
+   uint32_t hitLayer=anyHit && (x&7u)==6u?std::min(layerCount-1,8u):0u;
+   uint32_t expected=miss?456u:123u+hitLayer*17u;
+   if(wide) expected=64u*(miss?456u+(x&7u):123u+(x&7u)+hitLayer*17u)+2016u;
    expected*=rayCount;
    if(values[y*width+x]!=expected){fprintf(stderr,"Mismatch (%u,%u) got=%u expected=%u\n",x,y,values[y*width+x],expected);throw std::runtime_error("GPU output mismatch");}
   }
   if(repetition>=2){gpuTimes.push_back(double(ticks[1]-ticks[0])*props.limits.timestampPeriod/1e6);wallTimes.push_back(wallMs);}
  }
  std::sort(gpuTimes.begin(),gpuTimes.end());std::sort(wallTimes.begin(),wallTimes.end());
- printf("RESULT {\"width\":%u,\"height\":%u,\"rays_per_pixel\":%u,\"payload_bytes\":%u,\"any_hit\":%s,\"indirect\":%s,\"repeats\":%u,\"gpu_ms_median\":%.6f,\"gpu_ms_min\":%.6f,\"wall_ms_median\":%.6f,\"all_pixels_correct\":true}\n",width,height,rayCount,wide?256u:4u,anyHit?"true":"false",indirect?"true":"false",repeats,gpuTimes[gpuTimes.size()/2],gpuTimes.front(),wallTimes[wallTimes.size()/2]);
+ printf("RESULT {\"width\":%u,\"height\":%u,\"rays_per_pixel\":%u,\"payload_bytes\":%u,\"any_hit\":%s,\"layers\":%u,\"indirect\":%s,\"repeats\":%u,\"gpu_ms_median\":%.6f,\"gpu_ms_min\":%.6f,\"wall_ms_median\":%.6f,\"all_pixels_correct\":true}\n",width,height,rayCount,wide?256u:4u,anyHit?"true":"false",layerCount,indirect?"true":"false",repeats,gpuTimes[gpuTimes.size()/2],gpuTimes.front(),wallTimes[wallTimes.size()/2]);
  return 0;
  }catch(const std::exception& e){fprintf(stderr,"FAIL: %s\n",e.what());return 1;} }

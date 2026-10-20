@@ -1,0 +1,39 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+layout(set=0,binding=0) uniform accelerationStructureEXT scene;
+layout(set=0,binding=1,std430) buffer Output { vec4 values[]; } outputData;
+layout(push_constant) uniform Params { uint rayCount; uint fastFlags; } params;
+
+struct ShadowPayload { vec3 throughput; uint anyHitCount; vec3 radiance; uint pad; };
+layout(location=0) rayPayloadEXT ShadowPayload payload;
+
+void main() {
+    uint scenario = gl_LaunchIDEXT.y;
+    uint mask = scenario == 0u ? 0x7u :
+                scenario == 1u ? 0x3u :
+                scenario == 2u ? 0x8u :
+                scenario == 3u ? 0x0u : 0xBu;
+    vec3 accumulated = vec3(0.0);
+    vec3 lastThroughput = vec3(1.0);
+    uint accumulatedAnyHits = 0u;
+    uint flags = params.fastFlags != 0u
+        ? (gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipClosestHitShaderEXT)
+        : gl_RayFlagsNoneEXT;
+    for (uint i = 0u; i < params.rayCount; ++i) {
+        payload.throughput = vec3(1.0);
+        payload.anyHitCount = 0u;
+        payload.radiance = vec3(0.0);
+        payload.pad = 0u;
+        traceRayEXT(scene, flags, mask, 0, 0, 0,
+                    vec3(0.0, 0.0, -1.0), 0.001,
+                    vec3(0.0, 0.0, 1.0), 10.0, 0);
+        accumulated += payload.radiance;
+        lastThroughput = payload.throughput;
+        accumulatedAnyHits += payload.anyHitCount;
+    }
+    uint index = params.fastFlags * gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y +
+                 scenario * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x;
+    outputData.values[index] = vec4(accumulated, float(accumulatedAnyHits));
+    outputData.values[index + gl_LaunchSizeEXT.x * gl_LaunchSizeEXT.y * 2u] =
+        vec4(lastThroughput, float(scenario));
+}

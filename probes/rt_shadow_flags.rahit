@@ -1,0 +1,19 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+struct ShadowPayload { vec3 throughput; uint anyHitCount; vec3 radiance; uint pad; };
+layout(location=0) rayPayloadInEXT ShadowPayload payload;
+hitAttributeEXT vec2 barycentrics;
+void main() {
+    uint layer = gl_InstanceCustomIndexEXT;
+    payload.anyHitCount += 1u;
+    if (layer == 0u) {
+        // Alpha-cutout candidate: ignore it and continue to later layers.
+        ignoreIntersectionEXT;
+    } else if (layer == 1u) {
+        // Transmissive layer: accumulate colored throughput, then continue.
+        payload.throughput *= vec3(0.5, 0.75, 0.9);
+        ignoreIntersectionEXT;
+    }
+    // layer 2 is accepted. Baseline runs the intentionally empty closest-hit;
+    // fast mode terminates and skips it. Opaque layer 3 bypasses any-hit.
+}
