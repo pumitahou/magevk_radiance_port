@@ -1,6 +1,6 @@
 # Avance esencial: de la pantalla roja al mundo visible
 
-Fecha de referencia: 19 de octubre de 2026. Radiance 0.1.6-alpha, Minecraft 1.21.1/Fabric, Java 21 arm64 y MacBook Air M4. Este documento resume observaciones del usuario y los experimentos locales; los registros completos y perfiles personales quedan fuera de Git.
+Fecha de referencia: 20 de octubre de 2026. Radiance 0.1.6-alpha, Minecraft 1.21.1/Fabric, Java 21 arm64 y MacBook Air M4. Este documento resume observaciones del usuario y los experimentos locales; los registros completos y perfiles personales quedan fuera de Git.
 
 ## Resultado
 
@@ -34,5 +34,7 @@ El JAR histórico de E10 tuvo SHA-256 `a54c6aba2227a90d83b49eee57eef7b05115eebb5
 E11 añadió tiempos de GPU y observación del historial NRD. E12 pasó el despacho directo de trazado de grupos de 1 a 32 hilos, conservando el caso indirecto. E13 añadió retención de recursos Metal y conversión de excepciones nativas a Java. E14 transporta materiales en el payload de Vanilla PT y añade parámetros LabPBR de vidrio. Estos cambios no demuestran que se hayan corregido todos los artefactos o cierres.
 
 E15 integra FSR 1 espacial EASU + RCAS y un modo experimental 4× por eje. El usuario comunicó unos 22 FPS en un mundo plano casi vacío y 8 FPS a 720p, con transparencia todavía incorrecta y mala imagen en oscuridad. No es una comparación controlada de aceleración a igual resolución interna. El último registro examinado confirmaba FSR y NRD activos; un historial válido no prueba que todos los datos del denoiser sean correctos. FSR 3 Frame Generation sigue desactivado.
+
+E16 conecta la salida de refracción de Vanilla PT al compositor NRD y marca los materiales transmisivos en su guía. La prueba GPU del compositor demuestra que el fondo refractado se conserva sin duplicar la salida clear. El 20 de octubre de 2026 el usuario confirmó que el arreglo funcionó en Minecraft. Consulta [el experimento E16](E16-transparencia-nrd.md) para su alcance y validación; no se midió una mejora de FPS.
 
 La rama `V0.1` publica esta base experimental y su organización reproducible. Los autores y licencias originales se conservan; los forks contienen las modificaciones del port.

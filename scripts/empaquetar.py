@@ -14,7 +14,7 @@ from port_paths import ROOT, sdk
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--build-dir', type=Path, default=ROOT / 'build')
-parser.add_argument('--experiment', default='E15-fsr1')
+parser.add_argument('--experiment', default='E16-transparencia-nrd')
 args = parser.parse_args()
 if not re.fullmatch(r'E\d+-[a-zA-Z0-9-]+', args.experiment):
     parser.error('Identificador de experimento no válido')

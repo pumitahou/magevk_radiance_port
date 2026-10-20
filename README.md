@@ -2,7 +2,9 @@
 
 Este repositorio reúne el port de Radiance 0.1.6-alpha para Minecraft Java 1.21.1 con Fabric, MCVR y MageVK. La rama de trabajo es **`V0.1`**. Se ha renderizado un mundo en un MacBook Air M4 mediante Vulkan → MageVK → Metal.
 
-**Estado experimental:** persisten transparencia incorrecta, ruido con poca luz, rendimiento bajo y cierres pendientes de investigar. FSR 1 EASU + RCAS funciona; FSR 3 Frame Generation está desactivado. Los 22 FPS comunicados en una escena plana casi vacía y 8 FPS a 720p son observaciones del usuario, no un benchmark comparable a render nativo.
+**Estado experimental:** E16 corrige la composición de la refracción de vidrio y agua con NRD; el usuario confirmó la corrección en Minecraft. Persisten ruido con poca luz, rendimiento bajo y cierres pendientes de investigar. FSR 1 EASU + RCAS funciona; FSR 3 Frame Generation está desactivado. Los 22 FPS comunicados en una escena plana casi vacía y 8 FPS a 720p son observaciones del usuario, no un benchmark comparable a render nativo.
+
+La compilación predeterminada prepara **E16-transparencia-nrd**. Consulta [el cambio y las pruebas de E16](docs/E16-transparencia-nrd.md): el compositor conserva el fondo refractado junto al reflejo, y los pipelines guardados reciben la conexión necesaria sin sustituir conexiones de refracción existentes.
 
 ## Empezar
 
@@ -82,6 +84,8 @@ Variables opcionales: `DEVELOPER_DIR`, `JAVA_HOME` (JDK 21), `VULKAN_SDK` (carpe
 ./setup.sh --check
 python3 scripts/probar-fsr1.py --metal-validation
 python3 scripts/benchmark-rt.py --validation --width 127 --height 65 --repeats 3 --rounds 1
+python3 scripts/probar-transparencia-nrd.py --validation
+python3 scripts/probar-opacidad-rt.py --validation
 ```
 
 Las pruebas externas usan el runtime del paquete y no arrancan Minecraft. Sus resultados se guardan fuera de Git. Compilar y superar estas pruebas no certifica la imagen completa ni la estabilidad del juego. El historial superficial reduce la descarga; los SDK de terceros todavía pueden ocupar bastante espacio.

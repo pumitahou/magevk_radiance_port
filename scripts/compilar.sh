@@ -3,12 +3,12 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/entorno.sh"
 cd "$RADIANCE_ROOT"
 RADIANCE_INSTALL=1
-RADIANCE_EXPERIMENT=E15-fsr1
+RADIANCE_EXPERIMENT=E16-transparencia-nrd
 for arg in "$@"; do
   case "$arg" in
     --no-install) RADIANCE_INSTALL=0 ;;
     E[0-9]*-*) RADIANCE_EXPERIMENT="$arg" ;;
-    *) echo 'Uso: ./compile.sh [--no-install] [E15-fsr1]'; exit 2 ;;
+    *) echo 'Uso: ./compile.sh [--no-install] [E16-transparencia-nrd]'; exit 2 ;;
   esac
 done
 "$RADIANCE_ROOT/setup.sh" --check
