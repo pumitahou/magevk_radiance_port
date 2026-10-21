@@ -12,6 +12,11 @@ Si compilaste desde fuentes y configuraste el perfil del Launcher oficial, `./co
 
 Con el juego cerrado, los accesos 09, 10 y 11 seleccionan FSR 1 a 4×, 2× o resolución nativa tras el primer arranque. Estos accesos de configuración requieren Python 3. Los ajustes se respaldan. 4× por eje reduce el trazado a aproximadamente 1/16 de los píxeles y puede perder detalle. Comprueba la resolución `Display` de F3 en pantallas Retina.
 
+En la configuración de pipeline hay una fila superior de presets de rebotes:
+**Default · 4**, **Equilibrado · 3** y **Low · 2**. Cambian solo el límite de
+rebotes y conservan los demás ajustes. La selección se guarda por shader pack;
+al salir de la pantalla se reconstruye el pipeline para aplicarla.
+
 Los modos magenta y verde son diagnósticos de interfaz, no modos de juego. El acceso 01 restaura la interfaz normal. Para activar validación Vulkan hace falta un Vulkan SDK y definir `VULKAN_SDK` o conservar la estructura del repositorio con su SDK local.
 
 `revisiones.json` identifica los commits utilizados y `SHA256SUMS.txt` los archivos generados. Las licencias originales están en `licenses`. El ZIP no contiene mundos, cuentas ni registros personales.

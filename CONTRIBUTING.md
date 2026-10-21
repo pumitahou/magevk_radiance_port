@@ -15,3 +15,11 @@ No publiques un gitlink cuyo commit todavía no esté disponible en el remoto de
 Comprueba `./setup.sh --check`, compila con `./compile.sh --no-install` y elige las pruebas GPU relevantes. Para comunicar problemas del juego incluye el commit superior, resolución `Display` de F3, resolución interna del trazado, modo FSR, escena y comportamiento observado. Los registros pueden contener datos personales: adjunta únicamente el fragmento técnico necesario.
 
 No añadas bibliotecas compiladas, SDK, caches, mundos, perfiles del Launcher ni registros completos al código fuente. Conserva las licencias y avisos originales. La licencia del repositorio superior se aplica a su código propio; las dependencias mantienen sus respectivas condiciones.
+
+Los experimentos tienen su carpeta `experiments/E<n>-descripcion/`, con un
+`README.md` que explica objetivo, reproducción, resultado y límites. Publica
+solo las fichas y fuentes autorizadas en `.gitignore`; conserva resultados,
+binarios y registros en subcarpetas locales ignoradas. No añadas datos con
+`git add -f`. El informe local de investigación de rendimiento sigue privado.
+El identificador de `compile.sh` etiqueta un paquete; no recupera una revisión
+histórica del código. Para reproducir un experimento anterior usa sus commits.

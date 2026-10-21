@@ -14,7 +14,7 @@ from port_paths import ROOT, sdk
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--build-dir', type=Path, default=ROOT / 'build')
-parser.add_argument('--experiment', default='E16-transparencia-nrd')
+parser.add_argument('--experiment', default='E21-presets-nativos')
 args = parser.parse_args()
 if not re.fullmatch(r'E\d+-[a-zA-Z0-9-]+', args.experiment):
     parser.error('Identificador de experimento no válido')
@@ -60,8 +60,9 @@ if not fabric.exists():
 if hashlib.sha256(fabric.read_bytes()).hexdigest() != 'fd021e3ea8d043805207f39d43ac4b358629b30f0d9280ffc5a886a433291bd1':
     raise SystemExit('SHA-256 inesperado de Fabric API; no se empaquetó')
 shutil.copy2(fabric, staging / 'mods' / fabric_name)
-for name in ('configurar-fsr1.py', 'port_paths.py'):
+for name in ('configurar-fsr1.py', 'configurar-lowcost.py', 'port_paths.py'):
     shutil.copy2(ROOT / 'scripts' / name, staging / 'bin' / name)
+shutil.copy2(ROOT / 'experiments/E19-lowcost/preset.json', staging / 'bin/muy-lowcost.json')
 (staging / 'experiment-id.txt').write_text(args.experiment + '\n')
 shutil.copy2(ROOT / 'templates/PAQUETE.md', staging / 'LEEME.md')
 shutil.copy2(ROOT / 'THIRD_PARTY.md', staging / 'licenses/FUENTES.md')

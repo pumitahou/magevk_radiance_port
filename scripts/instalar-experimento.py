@@ -39,8 +39,11 @@ with zipfile.ZipFile(package / 'mods' / mod_name) as jar:
     native = jar.read('libcore.dylib')
     marker = ('[RADIANCE-' + experiment.split('-')[0] + ']').encode()
     runtime = package / 'runtime/libMoltenVK.1.dylib'
-    if marker not in native and (not runtime.is_file() or marker not in runtime.read_bytes()):
-        raise SystemExit('Ni el motor ni MageVK corresponden al experimento; no se ha instalado')
+    pipeline_class = 'com/radiance/client/pipeline/Pipeline.class'
+    java_matches = pipeline_class in jar.namelist() and marker in jar.read(pipeline_class)
+    if (marker not in native and (not runtime.is_file() or marker not in runtime.read_bytes())
+            and not java_matches):
+        raise SystemExit('Ni el mod Java, el motor ni MageVK corresponden al experimento; no se ha instalado')
     if 'shaders/world/ray_tracing/vanilla-pt.zip' not in jar.namelist():
         raise SystemExit('Falta Vanilla PT; no se ha instalado')
 other_radiance = [p.name for p in mods.glob('*.jar') if 'radiance' in p.name.lower() and p.name != mod_name]

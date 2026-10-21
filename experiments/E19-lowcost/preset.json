@@ -1,0 +1,32 @@
+{
+  "name": "Muy low cost — prueba corta",
+  "shader": {
+    "num_ray_bounces": "2",
+    "enable_parallax": "render_pipeline.false",
+    "cloud_mode": "render_pipeline.module.main_render.attribute.cloud_mode.off",
+    "capture_volumetric_cloud_indirect": "render_pipeline.false",
+    "water_surface_mode": "render_pipeline.module.main_render.attribute.water_surface_mode.vanilla",
+    "volumetric_light_mode": "render_pipeline.module.main_render.attribute.volumetric_light_mode.vanilla",
+    "transparent_split_mode": "render_pipeline.module.main_render.attribute.transparent_split_mode.stochastic",
+    "post_enable_motion_blur": "render_pipeline.false"
+  },
+  "modules": {
+    "main_render": {"use_sharc": "render_pipeline.false"},
+    "fsr_upscaler": {
+      "enable": "render_pipeline.true",
+      "quality_mode": "render_pipeline.module.fsr_upscaler.attribute.quality_mode.ultra",
+      "sharpness": "0.25"
+    },
+    "nrd": {
+      "enable_sh": "render_pipeline.false",
+      "enable_separate_direct_denoising": "render_pipeline.false"
+    }
+  },
+  "radiance_options": {"rayBounces": "2", "frameGenerationMode": "0"},
+  "minecraft_options": {
+    "renderDistance": "4",
+    "simulationDistance": "6",
+    "entityDistanceScaling": "0.5",
+    "particles": "2"
+  }
+}

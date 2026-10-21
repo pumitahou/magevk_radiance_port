@@ -4,7 +4,7 @@ Este repositorio reúne el port de Radiance 0.1.6-alpha para Minecraft Java 1.21
 
 **Estado experimental:** E16 corrige la composición de la refracción de vidrio y agua con NRD; el usuario confirmó la corrección en Minecraft. Persisten ruido con poca luz, rendimiento bajo y cierres pendientes de investigar. FSR 1 EASU + RCAS funciona; FSR 3 Frame Generation está desactivado. Los 22 FPS comunicados en una escena plana casi vacía y 8 FPS a 720p son observaciones del usuario, no un benchmark comparable a render nativo.
 
-La compilación predeterminada prepara **E16-transparencia-nrd**. Consulta [el cambio y las pruebas de E16](docs/E16-transparencia-nrd.md): el compositor conserva el fondo refractado junto al reflejo, y los pipelines guardados reciben la conexión necesaria sin sustituir conexiones de refracción existentes.
+La compilación predeterminada prepara **E21-presets-nativos**: incluye los presets internos de 4, 3 y 2 rebotes y conserva los cambios anteriores. El runtime incorpora E20, una corrección experimental de la presentación en Metal; superó una prueba aislada de 60 segundos, pero sigue pendiente de confirmar en Minecraft. Cada experimento tiene su [carpeta, instrucciones y límites de verificación](experiments/README.md).
 
 Los cambios posteriores incluyen [E17, retención de recursos Metal](docs/E17-vida-recursos-metal.md), y [E18, optimización de sombras y medición GPU](docs/E18-ray-tracing.md). **E18 sigue siendo inestable:** el usuario reportó otro cierre y el informe nativo muestra un fallo durante una notificación de Metal. SHARC también tiene un fallo pendiente. La mejora del 19% corresponde a una prueba aislada de sombras, no a los FPS de Minecraft. Para identificar explícitamente el paquete de esta prueba: `./compile.sh --no-install E18-ray-tracing`.
 
@@ -55,6 +55,11 @@ El instalador localiza el perfil que usa ese wrapper, respalda los JAR anteriore
 
 Tras el primer arranque, los accesos `09-fsr1-rapido-4x.command`, `10-fsr1-calidad-2x.command` y `11-fsr1-nativo.command` seleccionan el escalado con el juego cerrado. 4× por eje implica aproximadamente 1/16 de los píxeles del trazado: es agresivo y puede perder mucho detalle. Consulta `Display` en F3 para distinguir resolución real y tamaño lógico Retina.
 
+En la configuración de pipeline hay una fila superior de presets de rebotes:
+**Default · 4**, **Equilibrado · 3** y **Low · 2**. Cambian solo el límite de
+rebotes y conservan los demás ajustes. La selección se guarda por shader pack;
+al salir de la pantalla se reconstruye el pipeline para aplicarla.
+
 ## Organización
 
 ```text
@@ -70,13 +75,14 @@ third_party/sse2neon/        submódulo, commit fijado
 scripts/                    entorno, compilación, paquete e instalación
 templates/                  archivos que se generan dentro de dist
 probes/                     fuentes de pruebas externas de GPU
+experiments/                una carpeta por experimento; fichas y fuentes públicas
 docs/                       avance, arquitectura y contribuciones
 requirements.json           herramientas probadas y revisiones auxiliares
 ```
 
 Los submódulos guardan **commits concretos**. La configuración `branch = V0.1` identifica la rama de desarrollo; `setup.sh` no ejecuta `update --remote` ni avanza las dependencias automáticamente. ShaderMake, MathLib y sse2neon se suministran a CMake desde los submódulos para evitar descargas variables desde `main` o `master`. CPM descarga las dependencias de MageVK fijadas en sus archivos `ExternalRevisions`.
 
-`build/`, `.cache/`, `.tools/`, `.local/`, `dist/`, registros y experimentos locales están ignorados. Las cachés antiguas del experimento también están ignoradas; no son necesarias para clonar y compilar.
+`build/`, `.cache/`, `.tools/`, `.local/`, `dist/`, registros y resultados locales de experimentos están ignorados. Las fichas y fuentes reproducibles de `experiments/` sí se publican mediante una lista explícita de archivos permitidos. Las cachés antiguas del experimento también están ignoradas; no son necesarias para clonar y compilar.
 
 Variables opcionales: `DEVELOPER_DIR`, `JAVA_HOME` (JDK 21), `VULKAN_SDK` (carpeta que contiene `bin/dxc`), `RADIANCE_JOBS` (4 por defecto), `RADIANCE_GIT_JOBS` (2 por defecto), `RADIANCE_BUILD_DIR` y `GRADLE_USER_HOME`. No hay rutas del autor requeridas en la compilación.
 
